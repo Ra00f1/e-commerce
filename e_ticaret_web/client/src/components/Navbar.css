@@ -1,0 +1,34 @@
+.navbar {
+  background-color: #dc993b;
+  overflow: hidden;
+  padding: 0 20px; /* Sol ve sağ kenar boşlukları */
+}
+
+.navbar ul {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  display: flex; /* Menü öğelerini yatay hizala */
+}
+
+.navbar li {
+  float: left;
+}
+
+.navbar li a {
+  display: block;
+  color: white;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-weight: bold; /* Yazıları kalın yap */
+}
+
+.navbar li a:hover {
+  background-color: #ddd;
+  color: black;
+}
+
+.navbar li:last-child {
+  margin-left: auto; /* Sepet öğesini sağ köşeye taşı */
+}

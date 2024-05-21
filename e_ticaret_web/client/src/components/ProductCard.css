@@ -1,0 +1,84 @@
+.App-header {
+  background-color: #dc993b;
+  padding: 20px;
+  color: white;
+  text-align: center; /* Yazıları ortala */
+}
+
+.search-bar {
+  display: block;
+  margin: 20px auto; /* Dikeyde ortala, yatayda kenarlardan eşit mesafe bırak */
+  width: 50%; /* Genişliği artır */
+  font-size: 16px;
+  border: none;
+  border-radius: 20px;
+  padding: 10px 20px;
+  outline: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-align: center; /* Metni ortala */
+}
+
+.search-bar::placeholder {
+  color: white; /* Placeholder rengini ayarla */
+}
+
+.search-bar:focus {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.3); /* Odaklandığında gölgeyi artır */
+}
+
+.categories {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.category-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px 20px;
+  margin-right: 10px;
+}
+.category-card:hover {
+  background-color: #dc993b; /* Hover rengi */
+}
+
+.product-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.product-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin: 10px;
+  width: 200px;
+  text-align: center;
+}
+
+.product-card button {
+  background-color: #dc993b; /* Yeşil renk */
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.product-card button:hover {
+  background-color: #d64e0e; /* Koyu yeşil hover rengi */
+}
+
+.product-image {
+  width: 150px; /* Sabit genişlik */
+  height: 150px; /* Sabit yükseklik */
+  object-fit: cover; /* Resmi boyutlandırırken oranlarını koru ve resmi kırpmak yerine sığdır */
+  border-radius: 8px; /* Köşeleri yuvarla */
+}

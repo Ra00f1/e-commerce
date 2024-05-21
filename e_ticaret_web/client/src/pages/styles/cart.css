@@ -1,0 +1,142 @@
+/* Sepet başlığı */
+.cart-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+/* Sepet konteyneri */
+.cart-container {
+  width: 80%;
+  margin: 0 auto;
+}
+
+/* Sepet tablosu */
+.cart-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.cart-table th, .cart-table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+.cart-table th {
+  background-color: #f2f2f2;
+  font-weight: bold;
+}
+
+.cart-item-image {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Ürün kartı */
+.cart-item {
+  margin-bottom: 20px;
+}
+
+.quantity-button {
+  margin: 0 5px;
+}
+
+.quantity {
+  margin: 0 10px;
+  display: inline-block;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Ödeme butonu */
+.checkout-button {
+  background-color: #dc993b;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.checkout-button:hover {
+  background-color: #d64e0e;
+}
+
+/* Silme butonu */
+.remove-button {
+  background-color: #ff4d4d;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.remove-button:hover {
+  background-color: #ff1a1a;
+}
+
+/* Toplam ve ödeme */
+.total-checkout {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  margin-top: 20px;
+}
+
+.total {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Modal stilleri */
+.Modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  right: auto;
+  bottom: auto;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  width: 300px;
+  text-align: center;
+}
+
+.Overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
+/* Modal kapatma butonu */
+.modal-close-button {
+  background-color: #dc993b;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+.modal-close-button:hover {
+  background-color: #d64e0e;
+}

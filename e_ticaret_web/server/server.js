@@ -1,17 +1,16 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const { MongoClient, ServerApiVersion } = require('mongodb');
 const bcrypt = require('bcrypt');
-const { MongoClient } = require('mongodb');
-const { ServerApiVersion } = require('mongodb');
 const cors = require('cors');
 
 const app = express();
-const port = 3001; // Adjust port number as needed
+const port = 3001;
 
 // Enable CORS for all routes
 app.use(cors());
 
-// Replace with your actual MongoDB connection URI
+// MongoDB's connection string
 const uri = "mongodb+srv://raoofagh:T6bp26wlEf1C7pDp@cluster0.sadjhyu.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 let client;
 
@@ -41,24 +40,27 @@ app.use(bodyParser.json());
 
 //______________________________________________________        Login      ______________________________________________________________
 // Function to validate user credentials
-async function isValidUser(username, password) {
+async function isValidUser(email, password) {
   try {
     const db = client.db("Eticaret");
     const collection = db.collection("Users");
 
     // Find user by username
-    const user = await collection.findOne({ username: username });
+    const user = await collection.findOne({ email: email });
 
     if (!user) {
       return { valid: false, message: "Username not found" }; // Username not found
     }
 
-    console.log(user.password);
-    console.log(password);
-
     // Compare passwords
     const isPasswordValid = bcrypt.compareSync(password, user.password);
-    return { valid: isPasswordValid, message: isPasswordValid ? "Login successful" : "Password is wrong" };
+
+    // Return validation result and user data if successful
+    if (isPasswordValid) {
+      return { valid: true, user: user };
+    } else {
+        return { valid: false, message: "Password is wrong" }; // Password is wrong
+    }
   } catch (error) {
     console.error("Error validating user:", error);
     // Distinguish between password validation error and other errors
@@ -72,20 +74,20 @@ async function isValidUser(username, password) {
 
 // API endpoint for user login (POST request)
 app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
-  if (!username || !password) {
+  if (!email || !password) {
     return res.status(400).json({ message: "Missing username or password" });
   }
 
-  const isValid = await isValidUser(username, password);
+  const isValid = await isValidUser(email, password);
 
   if (!isValid.valid) {
     return res.status(401).json({ message: isValid.message }); // Unauthorized
   }
 
-  // Login successful (replace with appropriate response for your application)
-  res.status(200).json({ message: "Login successful" });
+  // Login successful
+  res.status(200).json({ message: "Login successful" , data: isValid.user});
 });
 
 //______________________________________________________        Register      ______________________________________________________________
@@ -97,6 +99,7 @@ async function createUser(email, username, password) {
     // Check if user already exists
     const existingUser = await collection.findOne({ $or: [{ username: username }, { email: email }] });
     if (existingUser) {
+      console.log("Username or email already exists");
       return { success: false, message: "Username or email already exists" };
     }
 
@@ -119,6 +122,7 @@ async function createUser(email, username, password) {
     // Create new user
     const user = { userID: newUserID, email: email, username: username, password: hashedPassword };
     await collection.insertOne(user);
+    console.log("User created successfully");
 
     return { success: true, message: "User created successfully" };
   } catch (error) {
@@ -142,7 +146,7 @@ app.post('/signup', async (req, res) => {
     return res.status(400).json({ message: result.message }); // Bad request
   }
 
-  // Signup successful (replace with appropriate response for your application)
+  // Signup successful
   res.status(200).json({ message: "Signup successful" });
 });
 
@@ -185,7 +189,7 @@ app.post('/addItem', async (req, res) => {
     return res.status(400).json({ message: result.message }); // Bad request
   }
 
-  // Item added successfully (replace with appropriate response for your application)
+  // Item added successfully
   res.status(200).json({ message: "Item added successfully" });
 });
 
@@ -237,7 +241,7 @@ async function getAllItems() {
     const db = client.db("Eticaret");
     const collection = db.collection("Items");
 
-    // Project only desired fields
+    // Specify fields to return(Not used at the moment, but can be used to limit the fields returned by the query)
     const projection = { imageUrl: 1, name: 1, price: 1, categoryID: 1 };
 
     // Find all items
@@ -281,6 +285,7 @@ async function getItemWithCategory(CategoryID) {
   }
 }
 
+// Not used at the moment
 // API endpoint for getting item details in a specific category (GET request)
 app.get('/getItems/:CategoryID', async (req, res) => {
   const CategoryID = Number(req.params.CategoryID); // Convert CategoryID to number
@@ -361,6 +366,16 @@ async function getBasket(userID) {
     const basketItems = await collection.find({ userID: numericUserID }).toArray();
 
     console.log("Found basket items for userID:", userID); // For debugging
+
+    // Get the information of all the items in the basket using the productID
+    const itemsCollection = db.collection("Items");
+    for (const basketItem of basketItems) {
+      const item = await itemsCollection.findOne({ id: basketItem.productID });
+      basketItem.item = item;
+      basketItem.quantity = basketItem.quantity;
+    }
+
+    console.log("Found items in the basket:", basketItems); // For debugging
 
     return { success: true, items: basketItems };
   } catch (error) {
@@ -522,12 +537,293 @@ app.post('/removeOneItemFromBasket', async (req, res) => {
   res.status(200).json({ message: "Item removed from basket successfully" });
 });
 
+//______________________________________________________        Purchase      ______________________________________________________________
+
+// Function to Purchase a user's basket
+async function Purchase(userID) {
+  try {
+    const db = client.db("Eticaret");
+    const basketCollection = db.collection("Basket");
+    const historyCollection = db.collection("UserPurchaseHistory");
+    const itemsCollection = db.collection("Items");
+
+    // Get the user's basket
+    const basketItems = await basketCollection.find({ userID: userID }).toArray();
+
+    if (basketItems.length === 0) {
+      return { success: false, message: "Basket is empty", data: false};
+    }
+
+    // Check if there is enough stock for each item
+    for (const basketItem of basketItems) {
+      const item = await itemsCollection.findOne({ id: basketItem.productID });
+      if (item.stock < basketItem.quantity) {
+        return { success: false, message: "Not enough stock for item: " + item.name, data: false};
+      }
+    }
+
+    // Process the purchase
+    for (const basketItem of basketItems) {
+      // Add to UserPurchaseHistory
+      await historyCollection.insertOne(basketItem);
+      const item = await itemsCollection.findOne({ id: basketItem.productID });
+
+      // Reduce stock in Items
+      const updatedStock = item.stock - basketItem.quantity;
+      await itemsCollection.updateOne({ id: basketItem.productID }, { $set: { stock: updatedStock } });
+    }
+
+    // Clear the user's basket
+    await basketCollection.deleteMany({ userID: userID });
+
+    return { success: true, message: "Checkout successful" , data: true};
+  } catch (error) {
+    console.error("Error during checkout:", error);
+    return { success: false, message: "Internal server error", data: false};
+  }
+}
+
+// API endpoint for checkout (POST request)
+app.post('/purchase', async (req, res) => {
+  const userID = req.body.userID;
+
+  if (!userID) {
+    return res.status(400).json({ message: "Missing userID" });
+  }
+
+  const result = await Purchase(userID);
+
+  if (!result.success) {
+    return res.status(400).json({ message: result.message }); // Bad request
+  }
+
+  // Checkout successful
+  res.status(200).json({ message: "Checkout successful" });
+});
+
+//______________________________________________________        Get Purchase History      ______________________________________________________________
+// Not used at the moment
+// Function to get the purchase history of a user
+async function getPurchaseHistory(userID) {
+  try {
+    const db = client.db("Eticaret");
+    const collection = db.collection("UserPurchaseHistory");
+
+    // Convert userID to number if necessary
+    const numericUserID = Number(userID);
+
+    // Find purchase history by userID
+    const purchaseHistory = await collection.find({ userID: numericUserID }).toArray();
+
+    return { success: true, history: purchaseHistory };
+  } catch (error) {
+    console.error("Error getting purchase history:", error);
+    return { success: false, message: "Internal server error" };
+  }
+}
+
+// API endpoint for getting the purchase history of a user (GET request)
+app.get('/getPurchaseHistory/:userID', async (req, res) => {
+  const userID = req.params.userID; // Get userID from URL parameters
+
+  if (!userID) {
+    return res.status(400).json({ message: "Missing userID" });
+  }
+
+  const result = await getPurchaseHistory(userID);
+
+  if (!result.success) {
+    return res.status(500).json({ message: result.message }); // Internal server error
+  }
+
+  // Return purchase history
+  res.status(200).json(result.history);
+});
+
+//______________________________________________________        Add User Info      ______________________________________________________________
+// Not used at the moment
+// Function to save user information
+async function saveUserInfo(userID, address, phone_number, birth_date) {
+  try {
+    const db = client.db("Eticaret");
+    const collection = db.collection("UserInfo");
+
+    // Check if user info already exists
+    const existingUserInfo = await collection.findOne({ userID: userID });
+    if (existingUserInfo) {
+      return { success: false, message: "User info already exists" };
+    }
+
+    // Create new user info
+    const userInfo = { userID: userID, address: address, phone_number: phone_number, birth_date: birth_date };
+    await collection.insertOne(userInfo);
+
+    return { success: true, message: "User info saved successfully" };
+  } catch (error) {
+    console.error("Error saving user info:", error);
+    return { success: false, message: "Internal server error" };
+  }
+}
+
+// API endpoint for saving user info (POST request)
+app.post('/saveUserInfo', async (req, res) => {
+  const temp = req.body;
+  console.log(temp);
+  const{userID, address, phone_number, birth_date} = temp;
+  console.log(userID, address, phone_number, birth_date);
+
+  if (!userID || !address || !phone_number || !birth_date) {
+    return res.status(400).json({ message: "Missing user info details" });
+  }
+
+  const result = await saveUserInfo(userID, address, phone_number, birth_date);
+
+  if (!result.success) {
+    return res.status(400).json({ message: result.message }); // Bad request
+  }
+
+  // User info saved successfully
+  res.status(200).json({ message: "User info saved successfully" });
+});
+
+//______________________________________________________        Get User Info      ______________________________________________________________
+// Not used at the moment
+// Function to get user information
+async function getUserInfo(userID) {
+  try {
+    const db = client.db("Eticaret");
+    const collection = db.collection("UserInfo");
+
+    // Convert userID to number if necessary
+    const numericUserID = Number(userID);
+
+    // Find user info by userID
+    const userInfo = await collection.findOne({ userID: numericUserID });
+
+    if (!userInfo) {
+      return { success: false, message: "User info not found" };
+    }
+
+    return { success: true, info: userInfo };
+  } catch (error) {
+    console.error("Error getting user info:", error);
+    return { success: false, message: "Internal server error" };
+  }
+}
+
+// API endpoint for getting user info (GET request)
+app.get('/getUserInfo/:userID', async (req, res) => {
+  const userID = req.params.userID; // Get userID from URL parameters
+
+  if (!userID) {
+    return res.status(400).json({ message: "Missing userID" });
+  }
+
+  const result = await getUserInfo(userID);
+
+  if (!result.success) {
+    return res.status(500).json({ message: result.message }); // Internal server error
+  }
+
+  // Return user info
+  res.status(200).json(result.info);
+});
+
+//______________________________________________________        Update User Info      ______________________________________________________________
+// Not used at the moment
+// Function to update user information
+async function updateUserInfo(userID, address, phone_number, birth_date) {
+  try {
+    const db = client.db("Eticaret");
+    const collection = db.collection("UserInfo");
+
+    // Find existing user info
+    const existingUserInfo = await collection.findOne({ userID: userID });
+
+    if (!existingUserInfo) {
+      return { success: false, message: "User info not found" };
+    }
+
+    // Update user info
+    await collection.updateOne({ userID: userID }, { $set: { address: address, phone_number: phone_number, birth_date: birth_date } });
+
+    return { success: true, message: "User info updated successfully" };
+  } catch (error) {
+    console.error("Error updating user info:", error);
+    return { success: false, message: "Internal server error" };
+  }
+
+}
+
+// API endpoint for updating user info (POST request)
+app.post('/updateUserInfo', async (req, res) => {
+  const { userID, address, phone_number, birth_date } = req.body;
+
+  if (!userID || !address || !phone_number || !birth_date) {
+    return res.status(400).json({ message: "Missing user info details" });
+  }
+
+  const result = await updateUserInfo(userID, address, phone_number, birth_date);
+
+  if (!result.success) {
+    return res.status(400).json({ message: result.message }); // Bad request
+  }
+
+  // User info updated successfully
+  res.status(200).json({ message: "User info updated successfully" });
+});
+
+//______________________________________________________        Search      ______________________________________________________________
+// Not used at the moment
+// Function to search items by name
+async function searchItems(query) {
+  try {
+    const db = client.db("Eticaret");
+    const collection = db.collection("Items");
+
+    // Use MongoDB's $regex operator to find items whose names contain the query
+    const items = await collection.find({ name: { $regex: query, $options: 'i' } }).toArray();
+
+    return { success: true, items: items };
+  } catch (error) {
+    console.error("Error searching items:", error);
+    return { success: false, message: "Internal server error" };
+  }
+}
+
+// API endpoint for searching items (GET request)
+app.get('/searchItems/:query', async (req, res) => {
+  const query = req.params.query; // Get query from URL parameters
+
+  if (!query) {
+    return res.status(400).json({ message: "Missing search query" });
+  }
+
+  const result = await searchItems(query);
+
+  if (!result.success) {
+    return res.status(500).json({ message: result.message }); // Internal server error
+  }
+
+  // Return search results
+  res.status(200).json(result.items);
+});
+
 //______________________________________________________        Listen      ______________________________________________________________
 
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
-//TODO: Search item by name
-//TODO: user info
-//TODO: purchase history
-//TODO: change quantity count of item after purchase
+
+//TODO: ______________________________________________________      TODOS      ______________________________________________________________
+//TODO: ______________________________________________________      USER INFO      ______________________________________________________________
+//TODO: Connect Get User Info
+//TODO: connect Save User Info
+
+//TODO: ______________________________________________________      General      ______________________________________________________________
+//TODO: Clean the code
+//TODO: Clear the Duplicates
+
+//TODO: Change the DB like purchasehistory to have small case letter
+//TODO: change the DB like PurchaseHistory so they store all the data and don't use prodcutID
+//TODO: change the UserID field as mongo already creates _id field for each user(same can be done for profuctID if needed)

@@ -3,6 +3,44 @@ import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import './styles/signin.css';
+import axios from "axios";
+
+// Login function using Axios (similar to SignupAPI)
+const LoginAPI = async (email, password) => {
+    try {
+        const response = await axios.post('http://localhost:3001/login', { email, password });
+        if (response.status !== 200) {
+            // get the message from the response, data is the response body
+            const message = response.data.message;
+            console.error('Error:', message);
+            throw new Error(message);
+        }
+
+        const data = response.data;
+        return data; // Return user data or success message
+    } catch (error) {
+        // get the message from the response, data is the response body
+        const message = error.response.data.message;
+        console.error('Error:', message);
+        return null; // Indicate login failure
+    }
+};
+
+function Login(email, password) {
+    return LoginAPI(email, password)
+        .then(data => {
+            if (data) {
+                // Login successful
+                console.log("Login successful!");
+
+                return data; // Return user data for further actions
+            } else {
+                // Login failed, handle error
+                console.error("Login failed.");
+                return null;
+            }
+        });
+}
 
 const Signin = () => {
     const [email, setEmail] = useState('');
@@ -10,25 +48,25 @@ const Signin = () => {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (email === '' || password === '') {
             setError('Email ve şifre alanları boş bırakılamaz.');
             return;
         }
 
-        const storedUser = JSON.parse(localStorage.getItem('user'));
-        if (!storedUser || storedUser.email !== email || storedUser.password !== password) {
+        // Send the login data using LoginAPI and handle response
+        const userData = await Login(email, password);
+
+        if (userData) {
+            // Login successful, store user data and navigate
+            localStorage.setItem('userData', JSON.stringify(userData.data));
+            navigate('/home');
+        } else {
+            // Login failed, set error message
             setError('Geçersiz email veya şifre.');
-            return;
         }
-
-        // Başarılı login sonrası kullanıcı bilgilerini localStorage'e kaydetme
-        localStorage.setItem('loggedInUser', JSON.stringify({ email, password }));
-        // Başarılı login sonrası yönlendirme
-        navigate('/home');
     };
-
     return (
         <div className="signin-container">
             <h2>Welcome</h2>

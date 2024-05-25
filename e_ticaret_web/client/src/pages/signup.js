@@ -2,6 +2,32 @@
 import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import './styles/signup.css';
+import axios from 'axios';
+
+// SignupAPI that uses email, name, and password as parameters
+const SignupAPI = async (email, username, password) => {
+    try {
+        const response = await axios.post('http://localhost:3001/signup', { email, username, password });
+        console.log(response);
+        if (response.status !== 200) {
+            // get the message from the response, data is the response body
+            const message = response;
+            console.error('Error:', message);
+            // throw an error with the message
+            throw new Error(message);
+        }
+
+        const data = response.data;
+        return 1;
+    } catch (error) {
+        // get the message from the response, data is the response body
+        const message = error.response.data.message;
+        console.error('Error:', message);
+        // throw an error with the message
+        alert("Error: " + message);
+        return Number(0);
+    }
+};
 
 const Signup = () => {
     const [name, setName] = useState('');
@@ -10,16 +36,10 @@ const Signup = () => {
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         if (name === '' || email === '' || password === '') {
             setError('İsim, email ve şifre alanları boş bırakılamaz.');
-            return;
-        }
-
-        const existingUser = JSON.parse(localStorage.getItem('user'));
-        if (existingUser && existingUser.email === email) {
-            setError('Bu email adresi zaten kayıtlı.');
             return;
         }
 
@@ -30,11 +50,16 @@ const Signup = () => {
             password: password
         };
 
-        // LocalStorage'da kullanıcı bilgilerini sakla
-        localStorage.setItem('user', JSON.stringify(newUser));
+        // Send the user data to the SignupAPI function and wait for the response
+        const response = await SignupAPI(newUser.email, newUser.name, newUser.password);
 
-        // Başarılı signup sonrası yönlendirme
-        navigate('/home');
+        console.log("response: " + response);
+
+        // if the response is successful, go to the home page else show an error message as a popup
+        if (response === 1) {
+            // Signup successful, navigate to login page
+            navigate('/');
+        }
     };
 
     return (

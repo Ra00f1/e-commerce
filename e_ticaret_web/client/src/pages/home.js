@@ -1,33 +1,38 @@
 import React, { useState, useEffect } from "react";
 import Navbar from '../components/Navbar'; // Doğru yola import edin
 import ProductCard from '../components/ProductCard'; // Doğru yola import edin
-import laptopImage from '../images/laptop.jpg';
-import iphoneImage from '../images/phone.jpg';
-import headphoneImage from '../images/headphone.jpg';
+import axios  from "axios";
 
 const Home = () => {
-    // Tüm ürünlerin listesi
-    const allProducts = [
-        { name: 'Laptop', price: '3000₺', category: 'Bilgisayar', image: laptopImage },
-        { name: 'iPhone6', price: '5000₺', category: 'Telefon', image: iphoneImage },
-        { name: 'Kulaklık', price: '200₺', category: 'Kulaklık', image: headphoneImage },
-        { name: 'Laptop', price: '8000₺', category: 'Bilgisayar', image: laptopImage },
-        { name: 'iPhone6s', price: '6000₺', category: 'Telefon', image: iphoneImage },
-        { name: 'Kulaklık', price: '100₺', category: 'Kulaklık', image: headphoneImage },
-        { name: 'Laptop', price: '4000₺', category: 'Bilgisayar', image: laptopImage },
-        { name: 'iPhone7', price: '7000₺', category: 'Telefon', image: iphoneImage },
-        // Diğer ürünler
-    ];
-
+    const [allProducts, setAllProducts] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('Hepsi');
     const [searchTerm, setSearchTerm] = useState('');
-    const [filteredProducts, setFilteredProducts] = useState(allProducts);
+    const [filteredProducts, setFilteredProducts] = useState([]);
+
+    useEffect(() => {
+        // API'den ürünleri getiren fonksiyon
+        const getAllItems = async () => {
+            try {
+                const response = await axios.get('http://localhost:3001/getAllItems');
+                if (response.status === 200) {
+                    setAllProducts(response.data); // API'den gelen ürünleri state'e kaydedin
+                    setFilteredProducts(response.data); // Filtrelenmiş ürünleri de başlangıçta tüm ürünler olarak ayarlayın
+                } else {
+                    console.error('Error fetching items:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error fetching items:', error);
+            }
+        };
+
+        getAllItems();
+    }, []);
 
     useEffect(() => {
         let filtered = allProducts;
-        
+
         if (selectedCategory !== 'Hepsi') {
-            filtered = filtered.filter(product => product.category === selectedCategory);
+            filtered = filtered.filter(product => product.CategoryID === selectedCategory);
         }
 
         if (searchTerm !== '') {
@@ -35,17 +40,17 @@ const Home = () => {
         }
 
         setFilteredProducts(filtered);
-    }, [selectedCategory, searchTerm]);
+    }, [selectedCategory, searchTerm, allProducts]);
 
     return (
         <div>
             <Navbar /> {/* Navbar'ı Home sayfasına taşıdık */}
             <header className="App-header">
                 <h1 style={{ textAlign: 'center' }}>E Ticaret Sistesi</h1>
-                <input 
-                    type="text" 
-                    className="search-bar" 
-                    placeholder="Ürünleri ara..." 
+                <input
+                    type="text"
+                    className="search-bar"
+                    placeholder="Ürünleri ara..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -65,8 +70,9 @@ const Home = () => {
                             key={index}
                             name={product.name}
                             price={product.price}
-                            category={product.category}
-                            image={product.image}
+                            category={product.CategoryID}
+                            image={product.pictureUrl}
+                            id={product.id}
                         />
                     ))}
                 </div>

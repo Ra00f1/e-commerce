@@ -39,6 +39,8 @@ const Purchase = async (id) =>
 const RemoveOneItemFromBasket = async (id, productID) => {
     const url = 'http://localhost:3001/removeOneItemFromBasket';
 
+    console.log("RemoveOneItemFromBasket", id, productID);
+
     //TODO: 2 duplicates for this function
     try {
         const response = await axios.post(url, {
@@ -67,6 +69,8 @@ const RemoveOneItemFromBasket = async (id, productID) => {
 const RemoveOneFromBasketItem = async (id, productID) => {
     const url = 'http://localhost:3001/removeOneFromBasket';
 
+    console.log("RemoveOneFromBasketItem", id, productID);
+
     try {
         const response = await axios.post(url, {
             userID: id,
@@ -93,6 +97,7 @@ const RemoveOneFromBasketItem = async (id, productID) => {
 
 const AddToBasket = async (id, productID, quantity) => {
     const url = 'http://localhost:3001/addToBasket';
+    console.log("AddToBasket", id, productID, quantity);
 
     try {
         const response = await axios.post(url, {
@@ -157,7 +162,7 @@ const Cart = () => {
         const userData = localStorage.getItem('userData');
         if (userData) {
             const userDataJson = JSON.parse(userData);
-            setUserId(userDataJson.userID);
+            setUserId(userDataJson._id);
         }
     }, []);
 
@@ -181,7 +186,7 @@ const Cart = () => {
 
     const handleIncreaseQuantity = (id) => {
         setCartItems(cartItems.map(item =>
-            Number(item.item.id) === Number(id) ? { ...item, quantity: item.quantity + 1 } : item
+            item.productID === id ? { ...item, quantity: item.quantity + 1 } : item
         ));
     };
 
@@ -189,25 +194,25 @@ const Cart = () => {
         const userData = JSON.parse(localStorage.getItem('userData'));
 
         // Check if the item quantity is 1, if so, remove the item
-        const item = cartItems.find(item => Number(item.item.id) === Number(id));
+        const item = cartItems.find(item => item.productID === id);
         if (Number(item.quantity) === 1) {
-            await RemoveOneFromBasketItem(userData.userID, item.productID);
-            handleRemoveItem(Number(item.item.id));
+            await RemoveOneFromBasketItem(userData._id, item.productID);
+            handleRemoveItem(item.productID);
         } else {
-            await RemoveOneFromBasketItem(userData.userID, item.productID);
+            await RemoveOneFromBasketItem(userData._id, item.productID);
             setCartItems(cartItems.map(item =>
-                Number(item.item.id) === Number(id) ? { ...item, quantity: item.quantity - 1 } : item
+                item.productID === id ? { ...item, quantity: item.quantity - 1 } : item
             ));
         }
     };
 
     const handleRemoveItem = (id) => {
-        setCartItems(cartItems.filter(item => Number(item.item.id) !== Number(id)));
+        setCartItems(cartItems.filter(item => item.productID !== id));
     };
 
     const handleCheckout = async () => {
         const userData = JSON.parse(localStorage.getItem('userData'));
-        const Purchase_Result = await Purchase(userData.userID);
+        const Purchase_Result = await Purchase(userData._id);
         console.error("Error", Purchase_Result);
         if (Purchase_Result === null) {
             console.error('Failed to purchase items');
@@ -251,7 +256,7 @@ const Cart = () => {
                             <button
                                 className="quantity-button"
                                 onClick={() => {
-                                    const userId = JSON.parse(localStorage.getItem('userData')).userID;
+                                    const userId = JSON.parse(localStorage.getItem('userData'))._id;
                                     AddToBasket(userId, item.productID, 1);
                                     handleIncreaseQuantity(item.productID);
                                 }}
@@ -261,7 +266,7 @@ const Cart = () => {
                         <td>{item.item.price * item.quantity} TL</td>
                         <td>
                             <button onClick={() =>{
-                                const userId = JSON.parse(localStorage.getItem('userData')).userID;
+                                const userId = JSON.parse(localStorage.getItem('userData'))._id;
                                 RemoveOneItemFromBasket(userId, item.productID);
                                 handleRemoveItem(item.productID);
                             }} className="remove-button">Remove

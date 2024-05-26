@@ -72,7 +72,7 @@ const Home = () => {
                             price={product.price}
                             category={product.CategoryID}
                             image={product.pictureUrl}
-                            id={product.id}
+                            id={product._id}
                         />
                     ))}
                 </div>

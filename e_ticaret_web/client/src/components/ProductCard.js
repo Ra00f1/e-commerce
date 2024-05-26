@@ -36,8 +36,8 @@ function ProductCard({ name, price, category, image , id}) {
     const userData = localStorage.getItem('userData');
     // convert userData to JSON
     const userDataJson = JSON.parse(userData);
-    console.log(userDataJson.userID, id);
-    AddToBasket(userDataJson.userID, id, 1).then(r => console.log(r));
+    console.log(userDataJson._id, id);
+    AddToBasket(userDataJson._id, id, 1).then(r => console.log(r));
   };
 
   return (

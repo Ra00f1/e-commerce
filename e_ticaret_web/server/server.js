@@ -1,6 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId} = require('mongodb');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
 
@@ -57,6 +57,7 @@ async function isValidUser(email, password) {
 
     // Return validation result and user data if successful
     if (isPasswordValid) {
+      console.log(user);
       return { valid: true, user: user };
     } else {
         return { valid: false, message: "Password is wrong" }; // Password is wrong
@@ -106,21 +107,11 @@ async function createUser(email, username, password) {
     // Check if the Users collection is empty
     const isCollectionEmpty = await collection.countDocuments({}) === 0;
 
-    let newUserID;
-    if (isCollectionEmpty) {
-      // If the collection is empty, start userID from 1
-      newUserID = 1;
-    } else {
-      // If the collection is not empty, find the user with the highest userID and increment it by 1
-      const lastUser = await collection.find().sort({ userID: -1 }).limit(1).toArray();
-      newUserID = lastUser[0].userID + 1;
-    }
-
     // Hash the password
     const hashedPassword = bcrypt.hashSync(password, 10); // 10 is the saltRounds
 
     // Create new user
-    const user = { userID: newUserID, email: email, username: username, password: hashedPassword };
+    const user = { email: email, username: username, password: hashedPassword };
     await collection.insertOne(user);
     console.log("User created successfully");
 
@@ -153,19 +144,19 @@ app.post('/signup', async (req, res) => {
 //______________________________________________________        Add Items      ______________________________________________________________
 
 // Function to add a new item
-async function addItem(name, id, stock, price, pictureUrl, description, CategoryID) {
+async function addItem(name, stock, price, pictureUrl, description, CategoryID) {
   try {
     const db = client.db("Eticaret");
     const collection = db.collection("Items");
 
     // Check if item already exists
-    const existingItem = await collection.findOne({ id: id });
+    const existingItem = await collection.findOne({ name: name });
     if (existingItem) {
-      return { success: false, message: "Item with this ID already exists" };
+      return { success: false, message: "Item with this name already exists" };
     }
 
     // Create new item
-    const item = { name: name, id: id, stock: stock, price: price, pictureUrl: pictureUrl, description: description, CategoryID: CategoryID};
+    const item = { name: name, stock: stock, price: price, pictureUrl: pictureUrl, description: description, CategoryID: CategoryID};
     await collection.insertOne(item);
 
     return { success: true, message: "Item added successfully" };
@@ -177,13 +168,13 @@ async function addItem(name, id, stock, price, pictureUrl, description, Category
 
 // API endpoint for adding items (POST request)
 app.post('/addItem', async (req, res) => {
-  const { name, id, stock, price, pictureUrl, description, CategoryID} = req.body;
+  const { name, stock, price, pictureUrl, description, CategoryID} = req.body;
 
-  if (!name || !id || !stock || !price || !pictureUrl || !description || !CategoryID) {
+  if (!name || !stock || !price || !pictureUrl || !description || !CategoryID) {
     return res.status(400).json({ message: "Missing item details" });
   }
 
-  const result = await addItem(name, id, stock, price, pictureUrl, description, CategoryID);
+  const result = await addItem(name, stock, price, pictureUrl, description, CategoryID);
 
   if (!result.success) {
     return res.status(400).json({ message: result.message }); // Bad request
@@ -201,11 +192,8 @@ async function getItem(id) {
     const db = client.db("Eticaret");
     const collection = db.collection("Items");
 
-    // Convert id to number
-    id = Number(id);
-
     // Find item by id
-    const item = await collection.findOne({ id: id });
+    const item = await collection.findOne({ _id: id });
 
     // If item not found, return success: false
     if (!item) {
@@ -266,47 +254,9 @@ app.get('/getAllItems', async (req, res) => {
   res.status(200).json(result.items);
 });
 
-//______________________________________________________        Get Items by Category      ______________________________________________________________
-
-// Function to get specific details of all items in a specific category
-async function getItemWithCategory(CategoryID) {
-  try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("Items");
-
-    // Get all items in the specified category with specific fields
-    const items = await collection.find({ CategoryID: CategoryID }, { projection: { pictureUrl: 1, name: 1, price: 1, CategoryID: 1 } }).toArray();
-
-    // Return item details
-    return { success: true, items: items };
-  } catch (error) {
-    console.error("Error getting items:", error);
-    return { success: false, message: "Internal server error" };
-  }
-}
-
-// Not used at the moment
-// API endpoint for getting item details in a specific category (GET request)
-app.get('/getItems/:CategoryID', async (req, res) => {
-  const CategoryID = Number(req.params.CategoryID); // Convert CategoryID to number
-
-  if (!CategoryID) {
-    return res.status(400).json({ message: "Missing CategoryID" });
-  }
-
-  const result = await getItemWithCategory(CategoryID);
-
-  if (!result.success) {
-    return res.status(500).json({ message: result.message }); // Internal server error
-  }
-
-  // Return item details
-  res.status(200).json(result.items);
-});
-
 //______________________________________________________        Add To Basket      ______________________________________________________________
-
-// Function to add an item to a user's basket
+//TODO: Change to add all teh details fo teh product to the basket not just the productID
+//Function to add an item to a user's basket
 async function addToBasket(userID, productID, quantity) {
   try {
     const db = client.db("Eticaret");
@@ -359,23 +309,28 @@ async function getBasket(userID) {
     const db = client.db("Eticaret");
     const collection = db.collection("Basket");
 
-    // Convert userID to number if necessary (assuming userID in database is a number)
-    const numericUserID = Number(userID);
-
     // Find basket items by userID
-    const basketItems = await collection.find({ userID: numericUserID }).toArray();
-
-    console.log("Found basket items for userID:", userID); // For debugging
+    const basketItems = await collection.find({ userID: userID }).toArray();
+    if (basketItems.length === 0) {
+      console.log("Basket is empty for userID:", userID);
+    }
+    else
+    {
+        console.log("Basket is not empty for userID:", userID);
+    }
+    console.log("Found items in the basket:", basketItems); // For debugging
 
     // Get the information of all the items in the basket using the productID
     const itemsCollection = db.collection("Items");
     for (const basketItem of basketItems) {
-      const item = await itemsCollection.findOne({ id: basketItem.productID });
+
+      // Turn basketItem.productID into an ObjectId
+      const basketItemID = new ObjectId(basketItem.productID);
+
+      const item = await itemsCollection.findOne({ _id: basketItemID });
       basketItem.item = item;
       basketItem.quantity = basketItem.quantity;
     }
-
-    console.log("Found items in the basket:", basketItems); // For debugging
 
     return { success: true, items: basketItems };
   } catch (error) {
@@ -503,6 +458,9 @@ async function removeOneItemFromBasket(userID, productID) {
     const db = client.db("Eticaret");
     const collection = db.collection("Basket");
 
+    console.log("userID: ", userID);
+    console.log("productID: ", productID);
+
     // Find existing item for the user and product
     const existingItem = await collection.findOne({ userID: userID, productID: productID });
 
@@ -547,6 +505,9 @@ async function Purchase(userID) {
     const historyCollection = db.collection("UserPurchaseHistory");
     const itemsCollection = db.collection("Items");
 
+    // Get all teh items in teh Items collection
+    const items = await itemsCollection.find({}).toArray();
+
     // Get the user's basket
     const basketItems = await basketCollection.find({ userID: userID }).toArray();
 
@@ -556,9 +517,15 @@ async function Purchase(userID) {
 
     // Check if there is enough stock for each item
     for (const basketItem of basketItems) {
-      const item = await itemsCollection.findOne({ id: basketItem.productID });
-      if (item.stock < basketItem.quantity) {
-        return { success: false, message: "Not enough stock for item: " + item.name, data: false};
+      const basketItemID = new ObjectId(basketItem.productID);
+
+      for (const item of items) {
+
+        if (item._id.toString() === basketItemID.toString()) {
+          if (item.stock < basketItem.quantity) {
+            return { success: false, message: "Not enough stock for item: " + item.name, data: false};
+          }
+        }
       }
     }
 
@@ -566,11 +533,14 @@ async function Purchase(userID) {
     for (const basketItem of basketItems) {
       // Add to UserPurchaseHistory
       await historyCollection.insertOne(basketItem);
-      const item = await itemsCollection.findOne({ id: basketItem.productID });
 
-      // Reduce stock in Items
-      const updatedStock = item.stock - basketItem.quantity;
-      await itemsCollection.updateOne({ id: basketItem.productID }, { $set: { stock: updatedStock } });
+      for (const item of items) {
+        if (item._id.toString() === basketItem.productID.toString()) {
+          // Reduce stock in Items
+          const updatedStock = item.stock - basketItem.quantity;
+          await itemsCollection.updateOne({ _id: basketItem.productID }, { $set: { stock: updatedStock } });
+        }
+      }
     }
 
     // Clear the user's basket
@@ -609,11 +579,8 @@ async function getPurchaseHistory(userID) {
     const db = client.db("Eticaret");
     const collection = db.collection("UserPurchaseHistory");
 
-    // Convert userID to number if necessary
-    const numericUserID = Number(userID);
-
     // Find purchase history by userID
-    const purchaseHistory = await collection.find({ userID: numericUserID }).toArray();
+    const purchaseHistory = await collection.find({ userID: userID }).toArray();
 
     return { success: true, history: purchaseHistory };
   } catch (error) {
@@ -694,11 +661,8 @@ async function getUserInfo(userID) {
     const db = client.db("Eticaret");
     const collection = db.collection("UserInfo");
 
-    // Convert userID to number if necessary
-    const numericUserID = Number(userID);
-
     // Find user info by userID
-    const userInfo = await collection.findOne({ userID: numericUserID });
+    const userInfo = await collection.findOne({ userID: userID });
 
     if (!userInfo) {
       return { success: false, message: "User info not found" };

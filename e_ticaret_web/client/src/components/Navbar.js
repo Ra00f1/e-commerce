@@ -7,8 +7,6 @@ function Navbar() {
     <header>
       <nav className="navbar">
         <ul>
-          <li><Link to="/home">Home</Link></li>
-          <li><Link to="/payment">Payment</Link></li> 
           <li><Link to="/cart">Cart</Link></li>
         </ul>
       </nav>

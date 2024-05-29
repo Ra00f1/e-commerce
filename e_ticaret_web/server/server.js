@@ -42,8 +42,8 @@ app.use(bodyParser.json());
 // Function to validate user credentials
 async function isValidUser(email, password) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("Users");
+    const db = client.db("eticaret");
+    const collection = db.collection("users");
 
     // Find user by username
     const user = await collection.findOne({ email: email });
@@ -94,8 +94,8 @@ app.post('/login', async (req, res) => {
 //______________________________________________________        Register      ______________________________________________________________
 async function createUser(email, username, password) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("Users");
+    const db = client.db("eticaret");
+    const collection = db.collection("users");
 
     // Check if user already exists
     const existingUser = await collection.findOne({ $or: [{ username: username }, { email: email }] });
@@ -104,7 +104,7 @@ async function createUser(email, username, password) {
       return { success: false, message: "Username or email already exists" };
     }
 
-    // Check if the Users collection is empty
+    // Check if the users collection is empty
     const isCollectionEmpty = await collection.countDocuments({}) === 0;
 
     // Hash the password
@@ -146,8 +146,8 @@ app.post('/signup', async (req, res) => {
 // Function to add a new item
 async function addItem(name, stock, price, pictureUrl, description, CategoryID) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("Items");
+    const db = client.db("eticaret");
+    const collection = db.collection("items");
 
     // Check if item already exists
     const existingItem = await collection.findOne({ name: name });
@@ -189,8 +189,8 @@ app.post('/addItem', async (req, res) => {
 // Function to get a single item's details
 async function getItem(id) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("Items");
+    const db = client.db("eticaret");
+    const collection = db.collection("items");
 
     // Find item by id
     const item = await collection.findOne({ _id: id });
@@ -226,8 +226,8 @@ app.get('/getItem/:id', async (req, res) => {
 // Function to get specific details of all items
 async function getAllItems() {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("Items");
+    const db = client.db("eticaret");
+    const collection = db.collection("items");
 
     // Specify fields to return(Not used at the moment, but can be used to limit the fields returned by the query)
     const projection = { imageUrl: 1, name: 1, price: 1, categoryID: 1 };
@@ -259,8 +259,8 @@ app.get('/getAllItems', async (req, res) => {
 //Function to add an item to a user's basket
 async function addToBasket(userID, productID, quantity) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("Basket");
+    const db = client.db("eticaret");
+    const collection = db.collection("cart");
 
     // Find existing item for the user and product
     const existingItem = await collection.findOne({ userID: userID, productID: productID });
@@ -306,8 +306,8 @@ app.post('/addToBasket', async (req, res) => {
 // Function to get the items in a user's basket
 async function getBasket(userID) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("Basket");
+    const db = client.db("eticaret");
+    const collection = db.collection("cart");
 
     // Find basket items by userID
     const basketItems = await collection.find({ userID: userID }).toArray();
@@ -321,7 +321,7 @@ async function getBasket(userID) {
     console.log("Found items in the basket:", basketItems); // For debugging
 
     // Get the information of all the items in the basket using the productID
-    const itemsCollection = db.collection("Items");
+    const itemsCollection = db.collection("items");
     for (const basketItem of basketItems) {
 
       // Turn basketItem.productID into an ObjectId
@@ -362,8 +362,8 @@ app.get('/getBasket/:userID', async (req, res) => {
 // Function to remove a single item from a user's basket
 async function removeOneFromBasket(userID, productID) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("Basket");
+    const db = client.db("eticaret");
+    const collection = db.collection("cart");
 
     // Find existing item for the user and product
     const existingItem = await collection.findOne({ userID: userID, productID: productID });
@@ -412,8 +412,8 @@ app.post('/removeOneFromBasket', async (req, res) => {
 // Function to remove all items from a user's basket
 async function removeAllFromBasket(userID) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("Basket");
+    const db = client.db("eticaret");
+    const collection = db.collection("cart");
 
     // Find all items for the user
     const basketItems = await collection.find({ userID: userID }).toArray();
@@ -455,8 +455,8 @@ app.post('/removeAllFromBasket', async (req, res) => {
 // Function to remove a single item from a user's basket
 async function removeOneItemFromBasket(userID, productID) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("Basket");
+    const db = client.db("eticaret");
+    const collection = db.collection("cart");
 
     console.log("userID: ", userID);
     console.log("productID: ", productID);
@@ -500,10 +500,10 @@ app.post('/removeOneItemFromBasket', async (req, res) => {
 // Function to Purchase a user's basket
 async function Purchase(userID) {
   try {
-    const db = client.db("Eticaret");
-    const basketCollection = db.collection("Basket");
-    const historyCollection = db.collection("UserPurchaseHistory");
-    const itemsCollection = db.collection("Items");
+    const db = client.db("eticaret");
+    const basketCollection = db.collection("cart");
+    const historyCollection = db.collection("userPurchaseHistory");
+    const itemsCollection = db.collection("items");
 
     // Get all teh items in teh Items collection
     const items = await itemsCollection.find({}).toArray();
@@ -576,8 +576,8 @@ app.post('/purchase', async (req, res) => {
 // Function to get the purchase history of a user
 async function getPurchaseHistory(userID) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("UserPurchaseHistory");
+    const db = client.db("eticaret");
+    const collection = db.collection("userPurchaseHistory");
 
     // Find purchase history by userID
     const purchaseHistory = await collection.find({ userID: userID }).toArray();
@@ -612,8 +612,8 @@ app.get('/getPurchaseHistory/:userID', async (req, res) => {
 // Function to save user information
 async function saveUserInfo(userID, address, phone_number, birth_date) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("UserInfo");
+    const db = client.db("eticaret");
+    const collection = db.collection("userInfo");
 
     // Check if user info already exists
     const existingUserInfo = await collection.findOne({ userID: userID });
@@ -658,8 +658,8 @@ app.post('/saveUserInfo', async (req, res) => {
 // Function to get user information
 async function getUserInfo(userID) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("UserInfo");
+    const db = client.db("eticaret");
+    const collection = db.collection("userInfo");
 
     // Find user info by userID
     const userInfo = await collection.findOne({ userID: userID });
@@ -698,8 +698,8 @@ app.get('/getUserInfo/:userID', async (req, res) => {
 // Function to update user information
 async function updateUserInfo(userID, address, phone_number, birth_date) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("UserInfo");
+    const db = client.db("eticaret");
+    const collection = db.collection("userInfo");
 
     // Find existing user info
     const existingUserInfo = await collection.findOne({ userID: userID });
@@ -742,8 +742,8 @@ app.post('/updateUserInfo', async (req, res) => {
 // Function to search items by name
 async function searchItems(query) {
   try {
-    const db = client.db("Eticaret");
-    const collection = db.collection("Items");
+    const db = client.db("eticaret");
+    const collection = db.collection("items");
 
     // Use MongoDB's $regex operator to find items whose names contain the query
     const items = await collection.find({ name: { $regex: query, $options: 'i' } }).toArray();
@@ -779,7 +779,6 @@ app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
 
-//TODO: ______________________________________________________      TODOS      ______________________________________________________________
 //TODO: ______________________________________________________      USER INFO      ______________________________________________________________
 //TODO: Connect Get User Info
 //TODO: connect Save User Info
@@ -787,7 +786,3 @@ app.listen(port, () => {
 //TODO: ______________________________________________________      General      ______________________________________________________________
 //TODO: Clean the code
 //TODO: Clear the Duplicates
-
-//TODO: Change the DB like purchasehistory to have small case letter
-//TODO: change the DB like PurchaseHistory so they store all the data and don't use prodcutID
-//TODO: change the UserID field as mongo already creates _id field for each user(same can be done for profuctID if needed)
